@@ -27,6 +27,35 @@ a loop **reliable enough to leave running**: keystrokes that do not duplicate
 under load, a typing count you can trust, an abort that says what landed, a
 stuck key that releases itself. Each of those cost us an afternoon.
 
+## With BaudHoundTerm, or on its own
+
+AgentKVM is the companion daemon to **[BaudHoundTerm](https://github.com/info-mah7/baudhoundterm)**,
+the Windows terminal and session manager. BaudHoundTerm gives it a window and a
+point-and-click setup: add a KVM session, enter the board's address, press
+**Pair with portal** to sign in to the board and fetch its key for you, and an
+agent drives the screen with the same approval gates, skills and interrupt as
+its VNC and RDP tabs. If you already run BaudHoundTerm, that is the whole setup.
+
+It is not tied to it, though. The daemon is a small HTTP service, and nothing
+above it is BaudHoundTerm-specific: a Python client and CLI, an MCP server so
+any LLM agent gets the hands and eyes as tools, and a plain `/v1` API you can
+`curl`. Used on its own it is a general "drive a computer over the network with
+no software on it" building block.
+
+**Using it standalone.** Install the daemon on the board once, over SSH:
+`agentkvm install root@<board>` (see [Install](#install)). It generates a bearer
+key, writes it to the board, and starts listening on `:9200`. From your own
+machine you then drive the target three ways, whichever suits you:
+
+- **Scripts** - the `agentkvm` CLI and Python client: `agentkvm --host <board> type "hello"`, `move`, `screenshot`, and the rest; or import the client in your own code.
+- **An agent** - `agentkvm mcp --host <board>` serves the keyboard, mouse and screen to any MCP-speaking LLM as tools, so the model operates the machine directly.
+- **Raw HTTP** - every verb is one authenticated POST, e.g. `curl -H "Authorization: Bearer <key>" -d '{"buttons":0,"x":16000,"y":16000}' http://<board>:9200/v1/mouse`. See [API](#api).
+
+Eyes come from the board's own capture (`/v1/screenshot` where the firmware
+offers one; on a NanoKVM 2.x, `agentkvm vision` runs a capture-and-query service
+on the host instead). `agentkvm doctor root@<board>` walks the whole chain and
+names the broken link if something is off.
+
 ## Two ways to run it
 
 Open hardware on the ESP32-P4, or a closed KVM you buy off the shelf. Same
