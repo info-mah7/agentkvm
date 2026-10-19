@@ -433,7 +433,10 @@ class Handler(BaseHTTPRequestHandler):
     def _roi(self, q):
         if "roi" not in q:
             return None
-        return tuple(int(v) for v in q["roi"][0].split(","))
+        roi = tuple(int(v) for v in q["roi"][0].split(","))
+        if len(roi) != 4:
+            raise ValueError("roi is x,y,w,h")
+        return roi
 
     def do_GET(self):
         u = urlparse(self.path)
@@ -597,6 +600,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"error": "Pillow not installed"}, 501)
                 roi = self._roi(q)
                 jpeg, seq = o.latest(timeout=3.0)
+                if jpeg is None:
+                    return self._json({"error": "no frame"}, 503)   # as /frame.jpg does
                 im = Image.open(io.BytesIO(jpeg))
                 if roi:
                     x, y, w, h = roi
@@ -615,6 +620,10 @@ class Handler(BaseHTTPRequestHandler):
                                          "/changed", "/wait", "/roi.jpg"]}, 404)
         except (BrokenPipeError, ConnectionResetError):
             return                                  # consumer went away mid-stream
+        except ValueError as e:
+            # A malformed parameter (roi=a,b, after=x, thr=...) is the caller's
+            # mistake: say so, rather than dropping the connection on a traceback.
+            return self._json({"error": f"bad query: {e}"}, 400)
 
 
 def main(argv=None):

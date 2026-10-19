@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 // A temp file stands in for /dev/hidg*: the daemon only ever writes bytes to
@@ -209,5 +210,62 @@ func TestPairTradesPortalSessionForKey(t *testing.T) {
 	s.routes().ServeHTTP(w, r)
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("GET got %d, want 405", w.Code)
+	}
+}
+
+// A /v1/keys report sent while a tap is holding its key must wait for the
+// tap's release. Without the sequence lock it landed in the hold: the tap's
+// release then let go of the other caller's key.
+func TestTapIsNotInterleaved(t *testing.T) {
+	h, kbd, _ := testHid(t)
+	s := &server{hid: h, key: "secret"}
+	post := func(path, body string) {
+		r := httptest.NewRequest(http.MethodPost, path, strings.NewReader(body))
+		r.Header.Set("Authorization", "Bearer secret")
+		w := httptest.NewRecorder()
+		s.routes().ServeHTTP(w, r)
+		if w.Code != 200 {
+			t.Errorf("%s: status %d: %s", path, w.Code, w.Body.String())
+		}
+	}
+
+	done := make(chan struct{})
+	go func() { post("/v1/tap", `{"modifier":0,"keys":[4],"hold_ms":150}`); close(done) }()
+	time.Sleep(40 * time.Millisecond) // well inside the tap's hold
+	post("/v1/keys", `{"modifier":0,"keys":[5]}`)
+	<-done
+
+	got := read(t, kbd)
+	if len(got) != 24 {
+		t.Fatalf("want press, release, then the keys report: got %d bytes", len(got))
+	}
+	if got[2] != 4 || !bytes.Equal(got[8:16], make([]byte, 8)) || got[16+2] != 5 {
+		t.Fatalf("keys report interleaved into the tap: % x", got)
+	}
+}
+
+// A capture source that accepts the connection and then stalls must not hold
+// /v1/screenshot for ever.
+func TestScreenshotTimesOut(t *testing.T) {
+	stall := make(chan struct{})
+	capture := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-stall
+	}))
+	defer capture.Close()
+	defer close(stall)
+
+	h, _, _ := testHid(t)
+	s := &server{hid: h, key: "secret", captureURL: capture.URL, captureTimeout: 150 * time.Millisecond}
+	r := httptest.NewRequest(http.MethodGet, "/v1/screenshot", nil)
+	r.Header.Set("Authorization", "Bearer secret")
+	w := httptest.NewRecorder()
+
+	start := time.Now()
+	s.routes().ServeHTTP(w, r)
+	if took := time.Since(start); took > 2*time.Second {
+		t.Fatalf("screenshot waited %v on a stalled capture", took)
+	}
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("want 502 from a stalled capture, got %d", w.Code)
 	}
 }

@@ -254,6 +254,16 @@ type server struct {
 	// this is as much to spare that as to resist anything.
 	pairMu   sync.Mutex
 	pairNext time.Time
+
+	// kbdSeq orders whole keyboard operations. hid.mu serialises single
+	// reports, but a tap is press, hold, release, and each report replaces
+	// what is held, so a report from another caller during the hold would be
+	// lost or released early. Tap holds this for the whole sequence; keys and
+	// release take it for theirs.
+	kbdSeq sync.Mutex
+
+	// captureTimeout bounds a /v1/screenshot fetch from the stock capture.
+	captureTimeout time.Duration
 }
 
 func (s *server) auth(r *http.Request) bool {
@@ -371,6 +381,8 @@ func (s *server) routes() *http.ServeMux {
 		if len(q.Keys) > 6 {
 			return nil, errors.New("a boot keyboard report carries at most six keys")
 		}
+		s.kbdSeq.Lock()
+		defer s.kbdSeq.Unlock()
 		return nil, s.hid.Keyboard(q.Modifier, q.Keys)
 	}))
 
@@ -396,6 +408,8 @@ func (s *server) routes() *http.ServeMux {
 		if hold > maxHoldMs {
 			hold = maxHoldMs // never long enough to trip the target's auto-repeat
 		}
+		s.kbdSeq.Lock()
+		defer s.kbdSeq.Unlock()
 		if err := s.hid.Keyboard(q.Modifier, q.Keys); err != nil {
 			return nil, err
 		}
@@ -404,6 +418,8 @@ func (s *server) routes() *http.ServeMux {
 	}))
 
 	mux.HandleFunc("/v1/release", s.handle(func(r *http.Request) (any, error) {
+		s.kbdSeq.Lock()
+		defer s.kbdSeq.Unlock()
 		return nil, s.hid.ReleaseAll()
 	}))
 
@@ -456,7 +472,13 @@ func (s *server) routes() *http.ServeMux {
 			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 			return
 		}
-		resp, err := http.Get(s.captureURL)
+		// Bounded: a capture that accepts the connection and then stalls (a busy
+		// SoC, an HDMI mode change) would otherwise hold this goroutine for ever.
+		timeout := s.captureTimeout
+		if timeout <= 0 {
+			timeout = 10 * time.Second
+		}
+		resp, err := (&http.Client{Timeout: timeout}).Get(s.captureURL)
 		if err != nil {
 			http.Error(w, `{"error":"capture unreachable"}`, http.StatusBadGateway)
 			return

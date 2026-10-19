@@ -288,3 +288,94 @@ def test_espkvm_rejects_a_frame_that_is_not_one():
     from agentkvm.espkvm import parse_video_header
     with _pytest.raises(ValueError):
         parse_video_header(b"\x00" * 12)
+
+
+# --- review fixes: the real vision handler, and espkvm reconnecting ---
+
+@pytest.fixture
+def organ_without_frame():
+    """The real query handler, in front of a capture that has not produced a frame yet."""
+    import urllib.request
+    from http.server import ThreadingHTTPServer
+    from agentkvm.vision.organ import Handler
+
+    class NoFrame:
+        def latest(self, after=-1, timeout=5.0):
+            return None, 0
+
+    class H(Handler):
+        organ = NoFrame()
+
+        def log_message(self, *a):
+            pass
+
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+
+    def get(path):
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{srv.server_port}{path}", timeout=10) as r:
+                return r.status
+        except urllib.error.HTTPError as e:
+            return e.code
+
+    yield get
+    srv.shutdown()
+
+
+def test_roi_before_the_first_frame_is_503_not_a_crash(organ_without_frame):
+    pytest.importorskip("PIL")
+    assert organ_without_frame("/roi.jpg") == 503
+
+
+def test_malformed_query_is_400_not_a_dropped_connection(organ_without_frame):
+    pytest.importorskip("PIL")
+    assert organ_without_frame("/roi.jpg?roi=a,b,c,d") == 400
+    assert organ_without_frame("/roi.jpg?roi=1,2,3") == 400      # not x,y,w,h
+    assert organ_without_frame("/frame.jpg?after=x") == 400
+
+
+def test_espkvm_reconnects_after_a_failed_connect(monkeypatch):
+    """A refused first connect used to leave the client believing it was connected for ever."""
+    import asyncio
+    import time
+    websockets = pytest.importorskip("websockets")
+    from agentkvm.espkvm import EspKvm
+
+    state = {"fail": True}
+    stop = threading.Event()
+
+    class Ctrl:
+        async def send(self, data):
+            pass
+
+    class Video(Ctrl):
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            while not stop.is_set():
+                await asyncio.sleep(0.02)
+            raise StopAsyncIteration
+
+    async def fake_connect(url, **kw):
+        if state["fail"]:
+            raise OSError("connection refused")
+        return Ctrl() if url.endswith("/ws") else Video()
+
+    monkeypatch.setattr(websockets, "connect", fake_connect)
+    monkeypatch.setattr(EspKvm, "_login", lambda self: None)
+    kvm = EspKvm("127.0.0.1", timeout=3.0)
+    try:
+        with pytest.raises(KvmError, match="refused"):
+            kvm.connect()
+        deadline = time.monotonic() + 3
+        while kvm._loop is not None and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert kvm._loop is None, "a failed connect left the client marked connected"
+
+        state["fail"] = False
+        kvm.connect()
+        assert kvm._ctrl is not None, "the second connect did not actually connect"
+    finally:
+        stop.set()

@@ -139,6 +139,7 @@ class EspKvm:
     def connect(self) -> None:
         if self._loop is not None:
             return
+        self._err = None        # a failure from an earlier attempt is not this one's
         self._login()
         ready = threading.Event()
         threading.Thread(target=self._pump, args=(ready,), name="espkvm", daemon=True).start()
@@ -168,6 +169,7 @@ class EspKvm:
                     video = await websockets.connect(f"{ws_base}/video", extra_headers=hdr, max_size=None)
             except Exception as e:                              # noqa: BLE001
                 self._err = str(e)
+                self._loop = None       # not connected: the next connect() tries again
                 ready.set()
                 return
             self._ctrl = ctrl
@@ -191,11 +193,19 @@ class EspKvm:
                         self._lock.notify_all()
             except Exception:                                   # noqa: BLE001
                 pass
+            # The stream ended (the device dropped us, or rebooted). Mark the
+            # session gone so the next connect() builds a new one, rather than
+            # leaving a dead control socket that every send fails on.
+            self._ctrl = None
+            self._loop = None
 
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-        self._loop.run_until_complete(run())
-        self._loop.run_forever()
+        loop = asyncio.new_event_loop()
+        self._loop = loop       # published before run(): _send schedules onto it while it streams
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(run())
+        finally:
+            loop.close()
 
     def _send(self, data: bytes) -> None:
         self.connect()
