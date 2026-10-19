@@ -1,0 +1,60 @@
+name: Bug report
+description: Something does not work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not report security vulnerabilities here - see
+        [SECURITY.md](../blob/master/SECURITY.md).
+  - type: textarea
+    id: doctor
+    attributes:
+      label: agentkvm doctor output
+      description: |
+        Run `agentkvm doctor <board>` and paste all of it. The chain is
+        board → daemon → key → USB gadget → capture, and most reports of
+        "it doesn't type" are one of those five, already named here.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+    validations:
+      required: true
+  - type: input
+    id: board
+    attributes:
+      label: Board
+      placeholder: Sipeed NanoKVM, firmware 2.4.3
+    validations:
+      required: true
+  - type: input
+    id: target
+    attributes:
+      label: Target machine
+      description: What the KVM is plugged into - OS and, if relevant, screen resolution.
+      placeholder: Windows 11, 1920x1080
+  - type: dropdown
+    id: caller
+    attributes:
+      label: How were you driving it
+      options: [MCP (an agent), the agentkvm CLI, the HTTP API directly, other]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Daemon log
+      description: "`logread | grep agentkvmd` on the board, or however your board surfaces stdout."
+      render: text
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: Before filing
+      options:
+        - label: The screen was verified by looking at it (a screenshot), not inferred from a tool returning success
+        - label: This reproduces after `agentkvm ... release` / `release_all`

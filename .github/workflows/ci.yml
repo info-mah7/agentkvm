@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  daemon:
+    name: daemon (go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; echo "run gofmt -w ."; exit 1; }
+      - run: go vet ./...
+      - run: go test ./...
+      # The daemon is shipped as a static binary, cross-compiled on every change.
+      - name: cross-compile riscv64 (NanoKVM)
+        run: GOOS=linux GOARCH=riscv64 CGO_ENABLED=0 go build -o /dev/null .
+
+  client:
+    name: client (python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The oldest version the package claims to support, and a current one.
+        python: ['3.10', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: install
+        working-directory: client
+        run: pip install -e '.[dev,vision]'
+      # Extras are allowed to be heavy; the BASE install is what must stay
+      # dependency-free: the thing a person
+      # installs to get hands on a machine should not pull a video stack. `pip
+      # install agentkvm` on its own is what a user gets, so that is what the
+      # tests run against, with only pytest added.
+      - name: no runtime dependencies
+        working-directory: client
+        run: |
+          deps=$(pip show agentkvm | sed -n 's/^Requires: //p')
+          [ -z "$deps" ] || { echo "agentkvm grew runtime dependencies: $deps"; exit 1; }
+      # pytest exits 5 when it collects nothing, so a suite that silently stops
+      # being discovered fails the job rather than passing it vacuously.
+      - name: test
+        working-directory: client
+        run: python -m pytest -q

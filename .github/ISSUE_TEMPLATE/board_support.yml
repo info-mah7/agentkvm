@@ -1,0 +1,50 @@
+name: Board support
+description: Report or request support for an IP-KVM board
+labels: [board]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Boards differ in which gadget node the pointer is on and how its report
+        is laid out. **Guessing a layout usually moves the cursor somewhere
+        plausible rather than failing**, so this asks for evidence rather than a
+        model name. See CONTRIBUTING.md for how to gather it.
+  - type: input
+    id: board
+    attributes:
+      label: Board and firmware version
+    validations:
+      required: true
+  - type: textarea
+    id: nodes
+    attributes:
+      label: "`ls -l /dev/hidg*` on the board"
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: descriptors
+    attributes:
+      label: Report descriptors
+      description: |
+        `hexdump -C /sys/kernel/config/usb_gadget/*/functions/hid.*/report_desc` - or the descriptors as the target host sees them. These are what
+        establish the report ID, the axis ranges, and whether a pointer is
+        absolute or relative.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything unusual
+      description: |
+        Does the board hold the gadget open itself? Does it re-enumerate on
+        reboot? Is there more than one USB port, and does the gadget face the
+        target or a control host?
+  - type: checkboxes
+    id: license
+    attributes:
+      label: Provenance
+      options:
+        - label: Nothing I am contributing was copied from the board's firmware source. See CONTRIBUTING.md.
+          required: true

@@ -1,0 +1,32 @@
+name: Release
+
+# Binaries are built here, by CI, from a tag - never committed to the tree.
+# Push a tag like v0.1.0 and the static daemon is attached to
+# the GitHub release, with a checksum file so a user can verify what they ship
+# to a device that types on their machine.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - run: go test ./...
+      - name: build static daemons
+        run: |
+          GOOS=linux GOARCH=riscv64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o agentkvmd.riscv64 .
+          sha256sum agentkvmd.riscv64 > SHA256SUMS
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            agentkvmd.riscv64
+            SHA256SUMS
+          generate_release_notes: true

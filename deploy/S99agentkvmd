@@ -1,0 +1,34 @@
+#!/bin/sh
+# Buildroot init script for agentkvmd.
+#
+# The key is generated here rather than shipped: it never exists on the
+# operator's machine, and a device that has never been provisioned gets a
+# random one instead of an empty one. The daemon refuses to start without it.
+DAEMON=/root/agentkvm/agentkvmd
+KEYFILE=/root/agentkvm/key
+PIDFILE=/var/run/agentkvmd.pid
+
+start() {
+	mkdir -p /root/agentkvm
+	if [ ! -s "$KEYFILE" ]; then
+		head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$KEYFILE"
+		chmod 600 "$KEYFILE"
+		echo "agentkvmd: generated a new API key in $KEYFILE"
+	fi
+	printf 'Starting agentkvmd: '
+	start-stop-daemon -S -q -b -m -p "$PIDFILE" -x "$DAEMON" -- -key-file "$KEYFILE"
+	[ $? = 0 ] && echo OK || echo FAIL
+}
+
+stop() {
+	printf 'Stopping agentkvmd: '
+	start-stop-daemon -K -q -p "$PIDFILE"
+	[ $? = 0 ] && echo OK || echo FAIL
+}
+
+case "$1" in
+	start) start ;;
+	stop) stop ;;
+	restart|reload) stop; sleep 1; start ;;
+	*) echo "Usage: $0 {start|stop|restart}"; exit 1 ;;
+esac

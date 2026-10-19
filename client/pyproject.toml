@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentkvm"
+version = "0.1.0"
+description = "Drive a computer through an IP-KVM: install the daemon, check the chain, expose it to an agent."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+# Deliberately dependency-free at runtime. The one thing a user installs to get
+# hands on a machine should not pull a video stack; ssh and scp are already on
+# every box that can reach the board.
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.2"]
+# The eyes. `vision` needs ffmpeg on PATH; Pillow enables the query endpoints
+# (/changed, /wait, /roi.jpg) and numpy only makes the comparison faster.
+vision = ["pillow>=10"]
+# espkvm firmware: HDMI in and HID out on one ESP32-P4, over two WebSockets.
+espkvm = ["websockets>=12"]
+vision-fast = ["pillow>=10", "numpy>=1.24"]
+# Cursor localisation from pixels alone. Heavier, and only needed to calibrate
+# open-loop moves against a target that will not say where its pointer is.
+cursor = ["opencv-python-headless>=4.8", "numpy>=1.24"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+agentkvm = "agentkvm.cli:main"
+
+[tool.pytest.ini_options]
+# Collecting nothing is a failure, not a pass: a CI run that silently tests
+# zero things reports success into the void.
+addopts = "-q --strict-markers"
+testpaths = ["."]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agentkvm*"]
