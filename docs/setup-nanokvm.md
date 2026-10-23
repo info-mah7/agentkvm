@@ -52,8 +52,10 @@ which looks exactly like a broken install.
 
 ## 3. Install the daemon
 
+The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/info-mah7/agentkvm`).
+
 ```sh
-pipx install agentkvm
+pipx install ./client
 agentkvm install root@<board-address>
 agentkvm doctor  root@<board-address>
 ```
@@ -103,7 +105,7 @@ And the eyes, for the verbs that answer a question instead of returning a
 picture:
 
 ```sh
-pipx install 'agentkvm[vision]'
+pipx install './client[vision]'
 agentkvm vision --device http://<board-address>/api/stream/mjpeg
 claude mcp add agentkvm -- agentkvm mcp --eyes 127.0.0.1
 ```

@@ -85,8 +85,10 @@ Set a password while you are there.
 
 ## 3. Point agentkvm at it
 
+The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/info-mah7/agentkvm`).
+
 ```sh
-pipx install 'agentkvm[espkvm]'
+pipx install './client[espkvm]'
 agentkvm add-espkvm espkvm.local --password '<the password you set>'
 agentkvm doctor  espkvm.local
 ```
@@ -133,7 +135,7 @@ For the cheap verbs - the ones that answer a question instead of returning a
 picture, and cost no image tokens - run the eyes as well:
 
 ```sh
-pipx install 'agentkvm[vision]'
+pipx install './client[vision]'
 export AMI_ESPKVM_PASS='<the password you set>'
 agentkvm vision --device https://espkvm.local/stream
 claude mcp add agentkvm -- agentkvm mcp --eyes 127.0.0.1

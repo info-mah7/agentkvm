@@ -160,10 +160,10 @@ esptool --chip esp32p4 -b 921600 write-flash 0x0 espkvm-<version>-<board>-merged
 Ethernet, HDMI from the target, USB-C OTG into the target. The board appears at
 `https://espkvm.local/`. Details, drivers and serial notes are in upstream's
 [FLASHING.md](https://github.com/espkvm/espkvm/blob/main/docs/FLASHING.md).
-Then:
+Then, from a clone of this repository (the package is not on PyPI):
 
 ```
-pipx install 'agentkvm[espkvm]'
+pipx install './client[espkvm]'
 agentkvm add-espkvm espkvm.local --password <device password>
 agentkvm doctor  espkvm.local
 ```
@@ -176,8 +176,10 @@ and records the address. Uninstall: delete a line from the config file.
 Nothing to flash. The board keeps its stock firmware; this adds a daemon
 beside it.
 
+The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/info-mah7/agentkvm`).
+
 ```
-pipx install agentkvm
+pipx install ./client
 agentkvm install root@nanokvm.local     # detects the board, provisions a key
                                         # (needs agentkvmd.<arch>: `make`, or
                                         #  a GitHub release + --binaries <dir>)
@@ -209,7 +211,7 @@ With the eyes running too, the agent gets the cheap verbs - the ones that
 answer a question instead of returning a picture:
 
 ```
-pipx install 'agentkvm[vision]'
+pipx install './client[vision]'
 agentkvm vision --device http://<board>/api/stream/mjpeg   # on YOUR machine
 claude mcp add agentkvm -- agentkvm mcp --eyes 127.0.0.1
 ```
@@ -542,9 +544,9 @@ sit on. What stays outside is the author's older research package - the
 exists so that there is now **one** backend with a documented HTTP API.
 
 ```
-pipx install agentkvm              # client, CLI, installer, doctor, MCP. No deps.
-pipx install 'agentkvm[vision]'    # + the capture loop and the cheap questions
-pipx install 'agentkvm[cursor]'    # + pixel-only cursor localisation (OpenCV)
+pipx install ./client              # client, CLI, installer, doctor, MCP. No deps.
+pipx install './client[vision]'    # + the capture loop and the cheap questions
+pipx install './client[cursor]'    # + pixel-only cursor localisation (OpenCV)
 ```
 
 The base install is dependency-free and CI asserts it. `[vision]` needs ffmpeg
