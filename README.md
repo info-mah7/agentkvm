@@ -630,7 +630,8 @@ This is AI-assisted work.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). In brief: no hardware needed, every
 change wants one runnable check, and **nothing may be copied out of a board's
-GPL-2.0 firmware** - that rule is what keeps this licensable as it is. Security
+GPL firmware** (NanoKVM and PiKVM are GPL-3.0) - that rule is what keeps this
+licensable as it is. Security
 issues go through [SECURITY.md](SECURITY.md), privately.
 
 ## License

@@ -6,7 +6,8 @@ knowing before you spend time on them.
 ## The one rule that is not negotiable
 
 **Do not copy code, key tables, or report definitions out of any board's
-firmware.** The firmwares this talks to are GPL-2.0; this project is Apache-2.0
+firmware.** The firmwares this talks to are GPL-3.0 (Sipeed NanoKVM, PiKVM) or
+Apache-2.0 (espkvm); this project is Apache-2.0
 and stays that way by containing none of their code. Talking to a device over
 loopback HTTP and writing bytes to a kernel character device is not a derivative
 work. Pasting in their keycode map is.
