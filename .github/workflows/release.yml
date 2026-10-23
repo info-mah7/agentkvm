@@ -24,9 +24,14 @@ jobs:
         run: |
           GOOS=linux GOARCH=riscv64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o agentkvmd.riscv64 .
           sha256sum agentkvmd.riscv64 > SHA256SUMS
+      - name: licence texts for the binary
+        run: cp "$(go env GOROOT)/LICENSE" GO-LICENSE.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             agentkvmd.riscv64
             SHA256SUMS
+            LICENSE
+            NOTICE
+            GO-LICENSE.txt
           generate_release_notes: true
