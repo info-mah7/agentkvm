@@ -8,3 +8,10 @@ assets/robot-at-desk.png is not covered by this licence; see assets/README.md.
 The release binary (agentkvmd) is built from Go's standard library alone and statically
 links it. The Go standard library is Copyright 2009 The Go Authors, BSD-3-Clause:
 https://go.dev/LICENSE. That licence text is attached to every release with this file.
+
+Credits
+
+  This daemon runs on the Sipeed NanoKVM (https://wiki.sipeed.com/nanokvm) beside Sipeed's own
+  firmware, github.com/sipeed/NanoKVM, Copyright Sipeed, GNU GPL-3.0. It writes to the USB gadget
+  devices that firmware configures and talks to its HTTP API on loopback; it contains none of its
+  code. NanoKVM and Sipeed are Sipeed's names.

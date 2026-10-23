@@ -561,7 +561,10 @@ A small piece on top of a lot of other people's work.
 it on a cheap SoC with a Go backend and WebRTC, and its source is why a board
 like this can be understood at all. [Sipeed's
 NanoKVM](https://wiki.sipeed.com/nanokvm) put it on RISC-V at a one-per-machine
-price, and its gadget configuration is what this daemon writes to.
+price, and its gadget configuration is what this daemon writes to. Its
+firmware is open source ([github.com/sipeed/NanoKVM](https://github.com/sipeed/NanoKVM),
+GPL-3.0); this daemon sits beside it on the board, uses the gadget devices and
+loopback API it provides, and owes it the fact that there is a board to run on.
 [Luckfox's PicoKVM](https://wiki.luckfox.com/Luckfox-PicoKVM/) carries
 JetKVM's lineage to another SoC and ships its own agent-facing tool server,
 which is why this daemon does not target it. [TinyPilot](https://tinypilotkvm.com/) went
