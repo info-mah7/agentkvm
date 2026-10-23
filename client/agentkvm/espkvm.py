@@ -152,7 +152,7 @@ class EspKvm:
         try:
             import websockets
         except ImportError:
-            self._err = "the espkvm extra is not installed (pipx install 'agentkvm[espkvm]')"
+            self._err = "the espkvm extra is not installed (pipx install './client[espkvm]')"
             ready.set()
             return
 

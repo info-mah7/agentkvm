@@ -269,3 +269,32 @@ func TestScreenshotTimesOut(t *testing.T) {
 		t.Fatalf("want 502 from a stalled capture, got %d", w.Code)
 	}
 }
+
+// Concurrent pairing attempts must queue behind one another: the throttle is
+// a cumulative slot, not "wait up to 500 ms and then all arrive together".
+func TestPairThrottleIsCumulative(t *testing.T) {
+	portal := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer portal.Close()
+	h, _, _ := testHid(t)
+	s := &server{hid: h, key: "k", verifyURL: portal.URL}
+	mux := s.routes()
+
+	start := time.Now()
+	done := make(chan struct{})
+	for i := 0; i < 3; i++ {
+		go func() {
+			r := httptest.NewRequest(http.MethodPost, "/v1/pair", strings.NewReader(`{"vendor_token":"x"}`))
+			mux.ServeHTTP(httptest.NewRecorder(), r)
+			done <- struct{}{}
+		}()
+	}
+	for i := 0; i < 3; i++ {
+		<-done
+	}
+	// First at 0, second at 500 ms, third at 1000 ms.
+	if el := time.Since(start); el < 900*time.Millisecond {
+		t.Fatalf("three concurrent attempts finished in %v; the throttle let them through together", el)
+	}
+}

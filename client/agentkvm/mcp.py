@@ -28,7 +28,7 @@ def serve(host: str | None = None, eyes_host: str | None = None) -> None:
         try:
             from mcp.server.fastmcp import FastMCP as Server, Image   # SDK 1.x
         except ImportError:  # pragma: no cover - depends on an optional extra
-            raise SystemExit("the MCP server needs the extra: pipx install 'agentkvm[mcp]'")
+            raise SystemExit("the MCP server needs the extra: pipx install './client[mcp]'")
 
     host, _entry = load_entry(host)
     kvm = connect(host)

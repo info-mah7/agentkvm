@@ -1,7 +1,8 @@
 // agentkvmd - a small HID daemon for IP-KVM boards, for agent control.
 //
 // It writes USB HID reports straight to the gadget character devices the
-// firmware exposes (/dev/hidg0 keyboard, /dev/hidg1 absolute mouse) and serves
+// firmware exposes (/dev/hidg0 keyboard, and the absolute pointer on the node
+// the board's profile names, /dev/hidg2 on the NanoKVM) and serves
 // one authenticated JSON API over the LAN. It does NOT talk to the stock
 // firmware's control APIs: those cannot express a modified keypress or a held
 // key at all (their /keyboard/key hard-codes modifier 0, and their combo verb
@@ -439,9 +440,16 @@ func (s *server) routes() *http.ServeMux {
 
 		// Throttle: one attempt per 500 ms, so a token-guessing loop cannot run
 		// flat out and cannot hammer the stock API either.
+		// Slots are cumulative: the Nth concurrent attempt waits N*500 ms,
+		// rather than every one of them waiting at most 500 ms and then
+		// arriving together.
 		s.pairMu.Lock()
-		wait := time.Until(s.pairNext)
-		s.pairNext = time.Now().Add(500 * time.Millisecond)
+		now := time.Now()
+		if s.pairNext.Before(now) {
+			s.pairNext = now
+		}
+		wait := s.pairNext.Sub(now)
+		s.pairNext = s.pairNext.Add(500 * time.Millisecond)
 		s.pairMu.Unlock()
 		if wait > 0 {
 			time.Sleep(wait)
@@ -512,19 +520,33 @@ func main() {
 		log.Fatalf("unknown board %q: the gadget nodes and the pointer report layout differ per board, and guessing wrong writes plausible nonsense rather than failing", *board)
 	}
 	h := &hid{p: p}
+	// The gadget nodes may not exist yet (a firmware that builds the gadget
+	// later, or rebuilds it while we run). Nothing on the board restarts a
+	// daemon that has exited, and every write reopens the nodes on demand, so
+	// a missing node at start is logged and served around, not fatal.
 	if err := h.open(); err != nil {
-		log.Fatalf("hid gadget: %v", err)
-	}
-	// Whatever a previous run left down is not our state. Best effort: on a
-	// host that does not poll one of the interfaces this cannot complete, and
-	// refusing to serve the keyboard because the pointer is unread would be
-	// the wrong trade.
-	if err := h.ReleaseAll(); err != nil {
+		log.Printf("hid gadget: %v (serving anyway; writes retry the open)", err)
+	} else if err := h.ReleaseAll(); err != nil {
+		// Whatever a previous run left down is not our state. Best effort: on
+		// a host that does not poll one of the interfaces this cannot
+		// complete, and refusing to serve the keyboard because the pointer is
+		// unread would be the wrong trade.
 		log.Printf("startup release: %v (serving anyway)", err)
 	}
 	go h.watchdog()
 
 	s := &server{hid: h, key: key, captureURL: *capture, verifyURL: *verify}
 	log.Printf("agentkvmd listening on %s (board=%s, kbd=%s, pointer=%s)", *addr, p.name, p.kbdPath, p.mousePath)
-	log.Fatal(http.ListenAndServe(*addr, s.routes()))
+	srv := &http.Server{
+		Addr:    *addr,
+		Handler: s.routes(),
+		// A client that opens a connection and never finishes its headers
+		// would otherwise hold a goroutine for ever. Writes get long enough
+		// for a screenshot proxy that uses its whole capture timeout.
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+	}
+	log.Fatal(srv.ListenAndServe())
 }

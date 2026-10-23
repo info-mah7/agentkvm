@@ -51,7 +51,7 @@ def run_espkvm(host: str, entry: dict) -> list[Check]:
         checks.append(Check("control socket", True, "open, control claimed"))
     except KvmError as e:
         checks.append(Check("control socket", False, str(e),
-                            "install the extra with `pipx install 'agentkvm[espkvm]'`, "
+                            "install the extra with `pipx install './client[espkvm]'` from a clone, "
                             "or close a browser session holding control of the device"))
         return checks
 

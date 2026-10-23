@@ -7,6 +7,7 @@
 DAEMON=/root/agentkvm/agentkvmd
 KEYFILE=/root/agentkvm/key
 PIDFILE=/var/run/agentkvmd.pid
+LOGFILE=/var/log/agentkvmd.log
 
 start() {
 	mkdir -p /root/agentkvm
@@ -15,8 +16,13 @@ start() {
 		chmod 600 "$KEYFILE"
 		echo "agentkvmd: generated a new API key in $KEYFILE"
 	fi
+	# Keep the last two logs. start-stop-daemon -b discards stdio, so the
+	# redirect happens in a shell that then becomes the daemon (exec keeps the
+	# pid in the pidfile honest).
+	[ -f "$LOGFILE" ] && [ "$(wc -c < "$LOGFILE")" -gt 1048576 ] && mv "$LOGFILE" "$LOGFILE.0"
 	printf 'Starting agentkvmd: '
-	start-stop-daemon -S -q -b -m -p "$PIDFILE" -x "$DAEMON" -- -key-file "$KEYFILE"
+	start-stop-daemon -S -q -b -m -p "$PIDFILE" -x /bin/sh -- -c \
+		"exec $DAEMON -key-file $KEYFILE >> $LOGFILE 2>&1"
 	[ $? = 0 ] && echo OK || echo FAIL
 }
 

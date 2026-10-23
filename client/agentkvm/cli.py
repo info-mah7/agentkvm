@@ -96,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
                 from .vision.organ import main as serve_vision
             except ImportError as e:
                 raise InstallError(f"the vision extra is not installed: {e} "
-                                   "(pipx install 'agentkvm[vision]')")
+                                   "(pipx install './client[vision]')")
             serve_vision(rest)
             return 0
 
