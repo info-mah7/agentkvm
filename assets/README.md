@@ -1,6 +1,6 @@
 # assets
 
-`agentducky.png` - generated with [DeepAI](https://deepai.org)'s image
+`robot-at-desk.png` - generated with [DeepAI](https://deepai.org)'s image
 generator. DeepAI's terms grant broad rights to generated output, including
 commercial use.
 

@@ -3,7 +3,7 @@ Copyright 2026 MAH7
 
 Licensed under the Apache License, Version 2.0. See LICENSE.
 
-assets/agentducky.png is not covered by this licence; see assets/README.md.
+assets/robot-at-desk.png is not covered by this licence; see assets/README.md.
 
 The release binary (agentkvmd) is built from Go's standard library alone and statically
 links it. The Go standard library is Copyright 2009 The Go Authors, BSD-3-Clause:

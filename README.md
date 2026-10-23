@@ -1,6 +1,6 @@
-# AgentKVM - "not a AgentDucky"
+# AgentKVM
 
-<img src="assets/agentducky.png" alt="A humanoid robot sitting at a desk, typing on a keyboard and watching a monitor" width="320" align="right">
+<img src="assets/robot-at-desk.png" alt="A humanoid robot sitting at a desk, typing on a keyboard and watching a monitor" width="320" align="right">
 
 An agent's hands and eyes on a computer that has nothing installed on it: HDMI
 out of the target, USB HID in, and an interface built for a model, not for
