@@ -1,7 +1,8 @@
-agentkvmd
-Copyright 2026 MAH7
+agentkvm
+Copyright 2026 MAH7 and the agentkvm contributors
 
-Licensed under the Apache License, Version 2.0. See LICENSE.
+Licensed under the Apache License, Version 2.0. See LICENSE. That covers the whole repository:
+the board daemon (agentkvmd, the Go code at the top level) and the client (client/).
 
 assets/robot-at-desk.png is not covered by this licence; see assets/README.md.
 
@@ -15,3 +16,7 @@ Credits
   firmware, github.com/sipeed/NanoKVM, Copyright Sipeed, GNU GPL-3.0. It writes to the USB gadget
   devices that firmware configures and talks to its HTTP API on loopback; it contains none of its
   code. NanoKVM and Sipeed are Sipeed's names.
+
+  The client also drives boards running espkvm (github.com/espkvm/espkvm), the ESP32-P4 IP-KVM
+  firmware, Copyright 2026 Evgenij Spitsyn and ESP-KVM contributors, Apache-2.0.
+  client/agentkvm/espkvm.py speaks its documented wire protocol; it contains none of its code.

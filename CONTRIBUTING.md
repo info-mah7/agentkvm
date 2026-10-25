@@ -94,3 +94,8 @@ chain is board → daemon → key → USB gadget → capture, and almost every r
 ## Security issues
 
 Please do not open a public issue. See [SECURITY.md](SECURITY.md).
+
+## Licence of contributions
+
+A patch you send is licensed under Apache-2.0, as section 5 of LICENSE says, unless you state
+otherwise in writing when you send it.

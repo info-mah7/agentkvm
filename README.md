@@ -566,6 +566,9 @@ price, and its gadget configuration is what this daemon writes to. Its
 firmware is open source ([github.com/sipeed/NanoKVM](https://github.com/sipeed/NanoKVM),
 GPL-3.0); this daemon sits beside it on the board, uses the gadget devices and
 loopback API it provides, and owes it the fact that there is a board to run on.
+[espkvm](https://github.com/espkvm/espkvm) (Evgenij Spitsyn and contributors,
+Apache-2.0) puts the whole thing on an ESP32-P4 with no Linux at all; the client
+speaks its protocol, and it is the board this project recommends.
 [Luckfox's PicoKVM](https://wiki.luckfox.com/Luckfox-PicoKVM/) carries
 JetKVM's lineage to another SoC and ships its own agent-facing tool server,
 which is why this daemon does not target it. [TinyPilot](https://tinypilotkvm.com/) went
