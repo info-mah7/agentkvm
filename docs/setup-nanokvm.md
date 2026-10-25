@@ -72,7 +72,7 @@ to fetch and execute anything from the internet. It:
 `doctor` then walks board → daemon → key → USB gadget → capture:
 
 ```
-✓ board reachable       10.0.0.7, kernel 5.10.4
+✓ board reachable       192.0.2.7, kernel 5.10.4
 ✓ daemon                responding on :9200
 ✓ key                   accepted
 ✓ USB gadget            configured: a host has enumerated it
