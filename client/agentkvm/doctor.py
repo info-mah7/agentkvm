@@ -95,8 +95,17 @@ def run(target: str, key: str) -> list[Check]:
         kvm.release()
         checks.append(Check("key", True, "accepted"))
     except KvmError as e:
-        checks.append(Check("key", False, str(e),
-                            "re-run `agentkvm install` to read the board's key again"))
+        # The key was accepted if the daemon got as far as the HID device; a
+        # device that will not open is the gadget's fault, not the key's.
+        if "/dev/hidg" in str(e):
+            checks.append(Check("key", True, "accepted"))
+            checks.append(Check("USB gadget", False, str(e),
+                                "the HID devices exist but do not open; re-bind the gadget on the "
+                                "board (`echo > UDC` then write the controller name back, under "
+                                "/sys/kernel/config/usb_gadget/<g>/) or reboot the board"))
+        else:
+            checks.append(Check("key", False, str(e),
+                                "re-run `agentkvm install` to read the board's key again"))
         return checks
 
     # 4. the gadget, and which way it faces. A board whose USB-C is in the

@@ -379,3 +379,32 @@ def test_espkvm_reconnects_after_a_failed_connect(monkeypatch):
         assert kvm._ctrl is not None, "the second connect did not actually connect"
     finally:
         stop.set()
+
+
+def test_install_checks_the_init_script_before_touching_the_board(tmp_path, monkeypatch):
+    # A release download once held only the binary: the installer stopped the
+    # daemon, then failed on the missing init script and left the board without one.
+    import agentkvm.install as inst
+    (tmp_path / "agentkvmd.riscv64").write_bytes(b"\x7fELF")
+    calls = []
+    monkeypatch.setattr(inst, "ssh", lambda *a, **k: calls.append(a) or "")
+    monkeypatch.setattr(inst, "scp", lambda *a, **k: calls.append(a))
+    with pytest.raises(inst.InstallError, match="init script"):
+        inst.install("root@board", tmp_path, board="nanokvm")
+    assert calls == []
+
+
+def test_doctor_blames_the_gadget_not_the_key_when_hid_will_not_open(monkeypatch):
+    import agentkvm.doctor as d
+    monkeypatch.setattr(d, "ssh", lambda *a, **k: "5.10.4")
+    monkeypatch.setattr(d, "resolve_host", lambda t: "board")
+
+    class FakeKvm:
+        def __init__(self, *a): pass
+        def healthz(self): return True
+        def release(self):
+            raise KvmError('/v1/release: HTTP 400 {"error":"open /dev/hidg0: no such device or address"}')
+    monkeypatch.setattr(d, "Kvm", FakeKvm)
+    checks = {c.name: c for c in d.run("root@board", "k")}
+    assert checks["key"].ok
+    assert not checks["USB gadget"].ok and "re-bind" in checks["USB gadget"].fix

@@ -182,7 +182,8 @@ The package is not on PyPI; `./client` is the directory in a clone of this repos
 pipx install ./client
 agentkvm install root@nanokvm.local     # detects the board, provisions a key
                                         # (needs agentkvmd.<arch>: `make`, or
-                                        #  a GitHub release + --binaries <dir>)
+                                        #  agentkvmd.riscv64 and S99agentkvmd from a
+                                        #  GitHub release, in one dir: --binaries <dir>)
 agentkvm doctor  root@nanokvm.local     # walks the chain, names the broken link
 ```
 

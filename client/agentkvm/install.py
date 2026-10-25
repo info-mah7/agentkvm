@@ -89,6 +89,12 @@ def install(target: str, binary_dir: pathlib.Path, board: str | None = None) -> 
         raise InstallError(f"no daemon built for {prof['arch']} at {binary}; "
                            "run `make` in the repo, or download agentkvmd.<arch> from the GitHub "
                            "release and pass --binaries <dir>")
+    # Checked before anything on the board is touched: stopping the daemon and
+    # then finding the init script missing left a board with no daemon at all.
+    init = binary_dir / "S99agentkvmd"
+    if not init.exists():
+        raise InstallError(f"no init script at {init}; it is deploy/S99agentkvmd in the repo and "
+                           "is attached to every GitHub release; put it next to the binary")
 
     ssh(target, f"mkdir -p {prof['dir']}")
     # A running daemon holds its binary open, and Linux refuses to overwrite a
@@ -96,7 +102,7 @@ def install(target: str, binary_dir: pathlib.Path, board: str | None = None) -> 
     # no init script yet and the `|| true` covers that.
     ssh(target, "/etc/init.d/S99agentkvmd stop 2>/dev/null || true")
     scp(str(binary), target, f"{prof['dir']}/agentkvmd")
-    scp(str(binary_dir / "S99agentkvmd"), target, "/etc/init.d/S99agentkvmd")
+    scp(str(init), target, "/etc/init.d/S99agentkvmd")
     ssh(target, f"chmod +x {prof['dir']}/agentkvmd /etc/init.d/S99agentkvmd")
     ssh(target, "/etc/init.d/S99agentkvmd restart")
 

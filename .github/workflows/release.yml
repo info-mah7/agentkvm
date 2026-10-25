@@ -30,6 +30,7 @@ jobs:
         with:
           files: |
             agentkvmd.riscv64
+            deploy/S99agentkvmd
             SHA256SUMS
             LICENSE
             NOTICE
