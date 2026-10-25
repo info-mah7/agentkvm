@@ -29,7 +29,7 @@ stuck key that releases itself. Each of those cost us an afternoon.
 
 ## With BaudHoundTerm, or on its own
 
-AgentKVM is the companion daemon to **[BaudHoundTerm](https://github.com/info-mah7/baudhoundterm)**,
+AgentKVM is the companion daemon to **[BaudHoundTerm](https://github.com/mahseven/baudhoundterm)**,
 the Windows terminal and session manager. BaudHoundTerm gives it a window and a
 point-and-click setup: add a KVM session, enter the board's address, press
 **Pair with portal** to sign in to the board and fetch its key for you, and an
@@ -176,7 +176,7 @@ and records the address. Uninstall: delete a line from the config file.
 Nothing to flash. The board keeps its stock firmware; this adds a daemon
 beside it.
 
-The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/info-mah7/agentkvm`).
+The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/mahseven/agentkvm`).
 
 ```
 pipx install ./client

@@ -52,7 +52,7 @@ which looks exactly like a broken install.
 
 ## 3. Install the daemon
 
-The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/info-mah7/agentkvm`).
+The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/mahseven/agentkvm`).
 
 ```sh
 pipx install ./client

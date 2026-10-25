@@ -1,3 +1,3 @@
-module github.com/info-mah7/agentkvm
+module github.com/mahseven/agentkvm
 
 go 1.22

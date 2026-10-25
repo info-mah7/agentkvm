@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/info-mah7/agentkvm/security/advisories/new
+    url: https://github.com/mahseven/agentkvm/security/advisories/new
     about: Report privately. Please do not open a public issue.
   - name: A vulnerability in the KVM board's own firmware
-    url: https://github.com/info-mah7/agentkvm/blob/master/SECURITY.md
+    url: https://github.com/mahseven/agentkvm/blob/master/SECURITY.md
     about: Those belong to the board's vendor - see our policy for where to send them.

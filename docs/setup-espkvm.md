@@ -85,7 +85,7 @@ Set a password while you are there.
 
 ## 3. Point agentkvm at it
 
-The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/info-mah7/agentkvm`).
+The package is not on PyPI; `./client` is the directory in a clone of this repository (`git clone https://github.com/mahseven/agentkvm`).
 
 ```sh
 pipx install './client[espkvm]'
