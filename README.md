@@ -631,8 +631,6 @@ what your model provider's terms allow.
 **Third-party names** are used for identification only and imply no
 affiliation or endorsement; all marks belong to their owners.
 
-This is AI-assisted work.
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). In brief: no hardware needed, every
@@ -640,6 +638,10 @@ change wants one runnable check, and **nothing may be copied out of a board's
 GPL firmware** (NanoKVM and PiKVM are GPL-3.0) - that rule is what keeps this
 licensable as it is. Security
 issues go through [SECURITY.md](SECURITY.md), privately.
+
+## Authors
+
+Written by MAH7 with Claude (Anthropic) as co-author. See [AUTHORS](AUTHORS).
 
 ## License
 
