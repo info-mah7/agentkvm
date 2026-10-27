@@ -1,8 +1,8 @@
 # assets
 
 `robot-at-desk.png` - generated with [DeepAI](https://deepai.org)'s image
-generator. DeepAI's terms grant broad rights to generated output, including
-commercial use.
+generator. DeepAI's [terms](https://deepai.org/terms-of-service/terms-of-service)
+grant broad rights to generated output, including commercial use.
 
 Two consequences, which are why this note exists:
 

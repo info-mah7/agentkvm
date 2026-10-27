@@ -647,4 +647,6 @@ Written by MAH7 with Claude (Anthropic) as co-author. See [AUTHORS](AUTHORS).
 
 Apache-2.0. This project talks to the stock firmware over loopback HTTP and
 writes to kernel gadget devices; it contains no code, key tables or other
-material from any board's firmware.
+material from any board's firmware, apart from one interface constant: the
+fixed passphrase the NanoKVM web login expects, which the client needs to log
+in (see [NOTICE](NOTICE)).

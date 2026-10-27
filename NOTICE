@@ -15,7 +15,12 @@ Credits
   This daemon runs on the Sipeed NanoKVM (https://wiki.sipeed.com/nanokvm) beside Sipeed's own
   firmware, github.com/sipeed/NanoKVM, Copyright Sipeed, GNU GPL-3.0. It writes to the USB gadget
   devices that firmware configures and talks to its HTTP API on loopback; it contains none of its
-  code. NanoKVM and Sipeed are Sipeed's names.
+  code. For interoperability, the client's vision module (client/agentkvm/vision/organ.py) logs in
+  to the NanoKVM web interface the way its own login page does: it encrypts the password with the
+  fixed passphrase the firmware expects ("nanokvm-sipeed-2024", from github.com/sipeed/NanoKVM,
+  web/src/lib/encrypt.ts) in CryptoJS/OpenSSL-compatible AES-256-CBC, using the openssl command.
+  That passphrase is an interface constant; the code is written from scratch and copies none of
+  Sipeed's. NanoKVM and Sipeed are Sipeed's names.
 
   The client also drives boards running espkvm (github.com/espkvm/espkvm), the ESP32-P4 IP-KVM
   firmware, Copyright 2026 Evgenij Spitsyn and ESP-KVM contributors, Apache-2.0.

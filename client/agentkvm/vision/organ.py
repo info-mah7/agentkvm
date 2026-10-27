@@ -122,7 +122,7 @@ def _nanokvm_headers(url: str) -> "str | None":
     base = m.group(1)
     user = os.environ.get("AMI_NANOKVM_USER", "admin")
     pw = os.environ.get("AMI_NANOKVM_PASS", "password")
-    key = "nanokvm-sipeed-2024"          # NanoKVM AES-Everywhere transport key
+    key = "nanokvm-sipeed-2024"          # the fixed passphrase NanoKVM's web login uses (see NOTICE)
     try:
         enc = subprocess.check_output(
             ["openssl", "enc", "-aes-256-cbc", "-md", "md5", "-pass", f"pass:{key}",
