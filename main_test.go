@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -296,5 +299,69 @@ func TestPairThrottleIsCumulative(t *testing.T) {
 	// First at 0, second at 500 ms, third at 1000 ms.
 	if el := time.Since(start); el < 900*time.Millisecond {
 		t.Fatalf("three concurrent attempts finished in %v; the throttle let them through together", el)
+	}
+}
+
+// A write the kernel holds (the NanoKVM's hidg driver retrying a wakeup the
+// sleeping target refuses) must not hold hid.mu: one stuck mouse report used
+// to keep every later key waiting for good. A full pipe in blocking mode
+// stands in, since its write blocks in the kernel too, out of the poller's
+// reach.
+func TestStuckWriteDoesNotBlockTheOtherInterface(t *testing.T) {
+	var p [2]int
+	if err := syscall.Pipe(p[:]); err != nil {
+		t.Fatal(err)
+	}
+	syscall.SetNonblock(p[1], true)
+	for {
+		if _, err := syscall.Write(p[1], make([]byte, 4096)); err != nil {
+			break
+		}
+	}
+	syscall.SetNonblock(p[1], false)
+	mouse := os.NewFile(uintptr(p[1]), "hidg2")
+	drain := os.NewFile(uintptr(p[0]), "drain")
+	defer drain.Close()
+	h, kbd, _ := testHid(t)
+	h.mouse = mouse
+
+	start := time.Now()
+	if err := h.Mouse(0, 10, 10); !errors.Is(err, ErrNotPolled) {
+		t.Fatalf("stuck pointer write: want ErrNotPolled, got %v", err)
+	}
+	if err := h.Keyboard(0, []byte{4}); err != nil {
+		t.Fatalf("keyboard behind a stuck pointer: %v", err)
+	}
+	if err := h.Mouse(0, 20, 20); !errors.Is(err, ErrNotPolled) {
+		t.Fatalf("second pointer write while stuck: want ErrNotPolled, got %v", err)
+	}
+	if took := time.Since(start); took > 2*(reportTimeout+stuckGrace) {
+		t.Fatalf("took %s: the stuck write held the lock", took)
+	}
+	if got := read(t, kbd); len(got) != 8 || got[2] != 4 {
+		t.Fatalf("keyboard report did not go out: % x", got)
+	}
+
+	// The target wakes: the write returns, the file is usable again, and
+	// what the late report pressed is left for the watchdog to release.
+	go io.Copy(io.Discard, drain)
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		h.mu.Lock()
+		stuck, held, last := h.stuck[mouse], h.held, h.lastAct
+		h.mu.Unlock()
+		if !stuck {
+			if !held || !last.IsZero() {
+				t.Fatalf("after the late write: held=%v lastAct=%v, want held and zero", held, last)
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the stuck write never cleared")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if err := h.Mouse(0, 30, 30); err != nil {
+		t.Fatalf("pointer after waking: %v", err)
 	}
 }

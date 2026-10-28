@@ -88,6 +88,10 @@ type hid struct {
 	lastAct time.Time // when the last report went out
 	lastX   int       // last commanded pointer position: an absolute report
 	lastY   int       // always carries one, so releasing a button re-sends it
+
+	// stuck holds a gadget file whose write the kernel has kept past the
+	// deadline. It is not written again until that write returns.
+	stuck map[*os.File]bool
 }
 
 func (h *hid) open() error {
@@ -115,12 +119,19 @@ func (h *hid) openLocked() error {
 // interface, so a report has nowhere to go. Seen on the first Windows target:
 // it polls the keyboard and the relative mouse and never the absolute
 // pointer, and a blocking write there hung the daemon before it listened.
-var ErrNotPolled = errors.New("host is not polling this HID interface (no reader on the other end of the cable)")
+var ErrNotPolled = errors.New("host is not polling this HID interface (target asleep or USB suspended, or no reader on the other end of the cable)")
 
 // reportTimeout is how long a report may wait for the host to poll the
 // endpoint before we call it unread. A host that is reading polls every
 // 1-8 ms; 300 ms is a dead interface, not a slow one.
 const reportTimeout = 300 * time.Millisecond
+
+// stuckGrace is how far past reportTimeout a write may run before it is left
+// behind. The deadline only covers waiting in Go's poller: when the target
+// sleeps with remote wakeup refused, the NanoKVM's 5.10 hidg driver stays
+// inside write() retrying the wakeup, non-blocking or not, and held hid.mu
+// with it. Every later key then waited behind one mouse report for good.
+const stuckGrace = 200 * time.Millisecond
 
 // write sends one report, reopening the gadget once if the target
 // re-enumerated the USB device underneath us (a reboot, or a UAC prompt
@@ -135,8 +146,20 @@ func (h *hid) write(f **os.File, report []byte) error {
 		if err := h.openLocked(); err != nil {
 			return err
 		}
-		(*f).SetWriteDeadline(time.Now().Add(reportTimeout))
-		_, err := (*f).Write(report)
+		file := *f
+		if h.stuck[file] {
+			return ErrNotPolled
+		}
+		file.SetWriteDeadline(time.Now().Add(reportTimeout))
+		done := make(chan error, 1)
+		go func() { _, err := file.Write(report); done <- err }()
+		var err error
+		select {
+		case err = <-done:
+		case <-time.After(reportTimeout + stuckGrace):
+			h.leaveBehind(file, done)
+			return ErrNotPolled
+		}
 		if err == nil {
 			h.lastAct = time.Now()
 			return nil
@@ -151,6 +174,26 @@ func (h *hid) write(f **os.File, report []byte) error {
 		}
 	}
 	return errors.New("unreachable")
+}
+
+// leaveBehind sets aside a file whose write the kernel is holding, with
+// hid.mu held. When the write finally returns (the target woke) its report
+// lands late, so whatever it pressed is marked held and the watchdog
+// releases it on its next tick.
+func (h *hid) leaveBehind(file *os.File, done <-chan error) {
+	if h.stuck == nil {
+		h.stuck = map[*os.File]bool{}
+	}
+	h.stuck[file] = true
+	log.Printf("hid: a write to %s is stuck in the kernel (target asleep?); failing reports to it until it returns", file.Name())
+	go func() {
+		<-done
+		h.mu.Lock()
+		delete(h.stuck, file)
+		h.held, h.lastAct = true, time.Time{}
+		h.mu.Unlock()
+		log.Printf("hid: the stuck write to %s returned", file.Name())
+	}()
 }
 
 // Keyboard sends a boot-protocol report: a modifier bitmap and up to six
