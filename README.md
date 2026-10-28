@@ -508,13 +508,14 @@ Report layouts and endpoint behaviour are covered by `go test`, the client by
   host, not the descriptor; the daemon now survives it either way. Also seen: the board drops TCP SYNs now and then, so a
   fresh connection occasionally waits a second while a kept-alive one answers
   in 1.5 ms; the client opens a connection per request and should not.
-  Later, a Windows 10 target went to sleep with remote wakeup off: the board's
-  hidg driver then stayed inside one pointer write, deadline or not, and that
-  write held the HID lock, so no key went out until the daemon restarted.
-  Fixed: a write the kernel keeps past the deadline is left behind, its
-  interface answers 503 until it returns, and the other interface keeps
-  working. Waking the target still needs a person, or "Allow this device to
-  wake the computer" on its keyboard.
+  Later, on an awake Windows 10 target, the board's hidg driver stayed inside
+  one pointer write, deadline or not, retrying a USB remote wakeup the host
+  had not allowed, and that write held the HID lock, so no key went out until
+  the daemon restarted. Fixed: a write the kernel keeps past the deadline is
+  left behind, its interface answers 503 until it returns, and the other
+  interface keeps working. The NanoKVM's stock gadget offers remote wakeup
+  (configs/c.1/bmAttributes 0xE0); on that board it is now set to 0xC0 at
+  boot, before the gadget is bound, so Windows has no wakeup to manage.
 - **US keyboard layout only.** `type_text` maps characters with a US table. On
   a target set to jp106, de105, uk105 and so on, some characters come out wrong
   or not at all; the returned count says how many were sent, not whether they
